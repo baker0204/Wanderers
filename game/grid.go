@@ -7,23 +7,24 @@ import (
 	"golang.org/x/term"
 )
 
-func DrawGrid() {
-	GridSlice := [][]rune{
-		{'.', '.', '.', '.', '.', '.', '.', '♣', '♣', '♣'},
-		{'.', '.', '.', '.', '.', '.', '♣', '♣', '♣', '♣'},
-		{'.', '.', '.', '.', '.', '.', '♣', '♣', '♣', '♣'},
-		{'.', '.', '.', '.', '.', '.', '.', '♣', '♣', '♣'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '♣', '♣'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '♣', '.'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
-		{'.', '.', '.', '.', '.', '.', '.', '.', '.', '.'},
+func GenerateGrid(x int, y int) [][]Tile {
+	grid := [][]Tile{} 
+
+	for a := 0; a < y; a++ {
+		row := []Tile{}
+		for b := 0; b < x; b++ {
+			row = append(row, Tile{Symbol: '.', Walkable: true, Terrain: "plains"})
+		}
+		grid = append(grid, row)
 	}
 
+	return grid
+}
+
+func DrawGrid(grid [][]Tile) {
 	// Each cell is "X " = 2 chars wide, so grid width = cols * 2
-	gridCols := len(GridSlice[0])
-	gridRows := len(GridSlice)
+	gridCols := len(grid[0])
+	gridRows := len(grid)
 	cellWidth := 2
 	gridWidth := gridCols * cellWidth
 
@@ -50,11 +51,14 @@ func DrawGrid() {
 		fmt.Println()
 	}
 
-	// Print the grid
+	// "Draw" the grid
 	for y := 0; y < gridRows; y++ {
 		fmt.Print(padding)
 		for x := 0; x < gridCols; x++ {
-			fmt.Printf("%c ", GridSlice[y][x]) // space after each cell
+			//fmt.Printf("%c ", grid[y][x]) // space after each cell
+			if grid[y][x].Entity != nil { 
+				fmt.Printf("%c ", grid[y][x].Entity.GetSymbol()) 
+			} else { fmt.Printf("%c ", grid[y][x].Symbol) }
 		}
 		fmt.Println()
 	}

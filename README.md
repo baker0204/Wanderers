@@ -1,2 +1,2 @@
-# Wanderers
-A cozy and lighthearted fantasy Adventure simulation in Go
+# Wanderers 🌿
+A cozy and lighthearted fantasy adventure simulation written in Go

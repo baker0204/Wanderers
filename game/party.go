@@ -1,6 +1,6 @@
 package game
 
-import "fmt"
+//import "fmt"
 
 type Character struct {
     Name      string

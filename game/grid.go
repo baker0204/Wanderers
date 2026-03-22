@@ -23,8 +23,60 @@ func GenerateGrid(x int, y int) [][]Tile {
 
 const clearLine = "\033[2K\r"
 
+// visWidth returns the real terminal display width of a string,
+// accounting for double-wide emoji characters
+func visWidth(s string) int {
+    width := 0
+    for _, r := range s {
+        if r >= 0x2300 {
+            width += 2 // covers ✅ and all emoji
+        } else {
+            width++
+        }
+    }
+    return width
+}
+
+// buildPanel builds the status panel lines including the box frame
+func buildPanel(p *Party, panelWidth int) []string {
+	inner := panelWidth - 2 // subtract left and right border chars
+
+	// pad a string to inner width using visible terminal width
+	pad := func(s string) string {
+		vis := visWidth(s)
+		if vis >= inner {
+			return s
+		}
+		return s + strings.Repeat(" ", inner-vis)
+	}
+
+	lines := []string{}
+	lines = append(lines, "┌"+strings.Repeat("─", inner)+"┐")
+
+	for i, c := range p.Members {
+		// Name line
+		nameStr := fmt.Sprintf("%c  %s the %s", c.GetSymbol(), c.Name, c.Class)
+		lines = append(lines, "│"+pad(" "+nameStr)+"│")
+
+		// Status line
+		status := ""
+		if c.Tired   { status += "😴 Tired  " }
+		if c.Spooked { status += "😨 Spooked" }
+		if status == "" { status = "✅ OK" }
+		lines = append(lines, "│"+pad("  "+status)+"│")
+
+		// Divider between members, not after last
+		if i < len(p.Members)-1 {
+			lines = append(lines, "│"+strings.Repeat(" ", inner)+"│")
+		}
+	}
+
+	lines = append(lines, "└"+strings.Repeat("─", inner)+"┘")
+	return lines
+}
+
 // I'm gonna be honest Claude did most of this UI code
-func DrawGrid(grid [][]Tile, j *Journey) {
+func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
 	gridCols := len(grid[0])
 	gridRows := len(grid)
 	cellWidth := 2
@@ -37,12 +89,21 @@ func DrawGrid(grid [][]Tile, j *Journey) {
 		termHeight = 24
 	}
 
+	panelWidth := 28
+	gap := 2
+
+	// Total width = grid + gap + panel
+	totalWidth := gridWidth + gap + panelWidth
+
 	// Center horizontally
-	leftPad := (termWidth - gridWidth) / 2
+	leftPad := (termWidth - totalWidth) / 2
 	if leftPad < 0 {
 		leftPad = 0
 	}
 	padding := strings.Repeat(" ", leftPad)
+
+	// Build panel lines
+	panel := buildPanel(p, panelWidth)
 
 	// Status bar
 	phase := j.Phases[j.Phase]
@@ -50,16 +111,14 @@ func DrawGrid(grid [][]Tile, j *Journey) {
 	statusBar := fmt.Sprintf("%s  |  %s", phase, day)
 
 	// Legend
-	legend := ". plains  ♣ forest  ~ water  K knight  B bard  D druid  W wizard  R ranger  H herbalist"
+	legend := ". Plains  ♣ Forest  ~ Water  K Knight  B Bard  D Druid  W Wizard  R Ranger  H Herbalist"
 	legendPad := (termWidth - len([]rune(legend))) / 2
 	if legendPad < 0 {
 		legendPad = 0
 	}
-	fmt.Print(clearLine)
-	fmt.Print(strings.Repeat(" ", legendPad) + legend + "\n")
 
-	// Center vertically as a block
-	totalLines := gridRows + 3
+	// Total lines: title + grid + blank + statusbar + blank + legend
+	totalLines := 1 + gridRows + 1 + 1 + 1 + 1
 	topPad := (termHeight - totalLines) / 2
 	if topPad < 0 {
 		topPad = 0
@@ -68,24 +127,26 @@ func DrawGrid(grid [][]Tile, j *Journey) {
 	// Move cursor to top-left
 	fmt.Print("\033[H")
 
-	// Top padding — clear each line
+	// Top padding
 	for i := 0; i < topPad; i++ {
 		fmt.Print(clearLine + "\n")
 	}
 
 	// Title
 	title := "Wanderers 🌿"
-	titlePad := (termWidth - len([]rune(title))) / 2
+	titlePad := (termWidth - visWidth(title)) / 2
 	if titlePad < 0 {
 		titlePad = 0
 	}
 	fmt.Print(clearLine)
 	fmt.Print(strings.Repeat(" ", titlePad) + title + "\n")
 
-	// Draw the grid — clear each line before writing
+	// Draw grid rows with panel alongside
+	gapStr := strings.Repeat(" ", gap)
 	for y := 0; y < gridRows; y++ {
 		fmt.Print(clearLine)
 		fmt.Print(padding)
+
 		for x := 0; x < gridCols; x++ {
 			if grid[y][x].Entity != nil {
 				fmt.Printf("%c ", grid[y][x].Entity.GetSymbol())
@@ -93,15 +154,25 @@ func DrawGrid(grid [][]Tile, j *Journey) {
 				fmt.Printf("%c ", grid[y][x].Symbol)
 			}
 		}
+
+		fmt.Print(gapStr)
+		if y < len(panel) {
+			fmt.Print(panel[y])
+		}
 		fmt.Print("\n")
 	}
 
-	// Blank line + status bar
+	// Blank line + centered status bar
 	fmt.Print(clearLine + "\n")
 	fmt.Print(clearLine)
-	statusPad := (termWidth - len([]rune(statusBar))) / 2
+	statusPad := (termWidth - visWidth(statusBar)) / 2
 	if statusPad < 0 {
 		statusPad = 0
 	}
 	fmt.Print(strings.Repeat(" ", statusPad) + statusBar + "\n")
+
+	// Blank line + legend
+	fmt.Print(clearLine + "\n")
+	fmt.Print(clearLine)
+	fmt.Print(strings.Repeat(" ", legendPad) + legend + "\n")
 }

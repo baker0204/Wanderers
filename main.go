@@ -20,9 +20,19 @@ func main() {
     fmt.Print("\033[2J")
 
     for {
-        game.DrawGrid(grid, j)
+        game.DrawGrid(grid, j, party)
         
-        for _, character := range party { character.Move(grid) }
+        cx, cy := party.Center()
+        for _, character := range party.Members {
+            character.Move(grid, cx, cy, party.Grouped)
+        }
+        if j.Phases[j.Phase] == "💤 Rest" {
+            for _, c := range party.Members {
+                c.Tired = false
+                c.Spooked = false
+                c.MoveCount = 0
+            }
+        }
 
         j.Tick()
         time.Sleep(200 * time.Millisecond)

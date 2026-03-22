@@ -1,0 +1,11 @@
+# Compiled binary
+wanderers
+*.exe
+
+# Test cache
+*.test
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db

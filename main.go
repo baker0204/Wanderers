@@ -8,10 +8,7 @@ import (
 
 func main() {
     grid := game.GenerateGrid(30, 20)
-
-    knight := &game.Character{Name: "Elra", Class: "Knight", X: 5, Y: 5}
-    grid[knight.Y][knight.X].Entity = knight
-
+    party := game.NewParty(grid)
     j := game.NewJourney()
 
     // Hide cursor for cleaner rendering
@@ -24,7 +21,9 @@ func main() {
 
     for {
         game.DrawGrid(grid, j)
-        knight.Move(grid)
+        
+        for _, character := range party { character.Move(grid) }
+
         j.Tick()
         time.Sleep(200 * time.Millisecond)
     }

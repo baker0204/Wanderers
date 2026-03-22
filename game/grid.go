@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
 	"golang.org/x/term"
 )
 
@@ -24,6 +23,7 @@ func GenerateGrid(x int, y int) [][]Tile {
 
 const clearLine = "\033[2K\r"
 
+// I'm gonna be honest Claude did most of this UI code
 func DrawGrid(grid [][]Tile, j *Journey) {
 	gridCols := len(grid[0])
 	gridRows := len(grid)
@@ -48,6 +48,15 @@ func DrawGrid(grid [][]Tile, j *Journey) {
 	phase := j.Phases[j.Phase]
 	day := fmt.Sprintf("Day %d", j.Daycount)
 	statusBar := fmt.Sprintf("%s  |  %s", phase, day)
+
+	// Legend
+	legend := ". plains  ♣ forest  ~ water  K knight  B bard  D druid  W wizard  R ranger  H herbalist"
+	legendPad := (termWidth - len([]rune(legend))) / 2
+	if legendPad < 0 {
+		legendPad = 0
+	}
+	fmt.Print(clearLine)
+	fmt.Print(strings.Repeat(" ", legendPad) + legend + "\n")
 
 	// Center vertically as a block
 	totalLines := gridRows + 3

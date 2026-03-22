@@ -1,6 +1,6 @@
 package game
 
-//import "fmt"
+import "math/rand"
 
 type Character struct {
     Name      string
@@ -87,4 +87,28 @@ func (c *Character) Move(grid [][]Tile) bool {
     } else {
         return false
     }
+}
+
+func NewParty(grid [][]Tile) []*Character {
+    classes := []string{"Knight", "Bard", "Druid", "Wizard", "Ranger", "Herbalist"}
+    party := []*Character{}
+
+    rand.Shuffle(len(classes), func(i, j int) {
+        classes[i], classes[j] = classes[j], classes[i]
+    })
+
+    for _, class := range classes[:3] {
+        char := &Character{
+            Name:  classNames[class],
+            Class: class,
+            Trait: classTraits[class],
+            Health: 10,
+            X: DiceRoll(len(grid[0])-1),
+            Y: DiceRoll(len(grid)-1),
+        }
+        grid[char.Y][char.X].Entity = char
+        party = append(party, char)
+    }
+
+    return party
 }

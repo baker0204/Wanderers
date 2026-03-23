@@ -10,6 +10,7 @@ func main() {
     grid := game.GenerateGrid(30, 20)
     party := game.NewParty(grid)
     j := game.NewJourney()
+    cm := game.NewCritterManager()
 
     // Hide cursor for cleaner rendering
     fmt.Print("\033[?25l")
@@ -19,8 +20,17 @@ func main() {
     // Clear screen once at the start
     fmt.Print("\033[2J")
 
+    cm.Spawn(game.RandomCritter(), grid)
+    cm.Spawn(game.RandomCritter(), grid)
+    cm.Spawn(game.RandomCritter(), grid)
+
     for {
         game.DrawGrid(grid, j, party)
+        cm.MoveAll(grid, party)
+        messages := cm.CheckAdjacency(party)
+        for _, msg := range messages {
+            fmt.Println(msg)
+        }
         
         cx, cy := party.Center()
         for _, character := range party.Members {

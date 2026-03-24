@@ -30,6 +30,7 @@ func (j *Journey) Tick() {
 		// check if past last phase
 		if j.Phase == len(j.Phases) { 
 			j.Phase = 0 // reset phase to morning
+            j.CurrentTick = 0
 			j.Daycount++
 		}
 	}

@@ -24,12 +24,17 @@ func main() {
     cm.Spawn(game.RandomCritter(), grid)
     cm.Spawn(game.RandomCritter(), grid)
 
+    eventLog := []string{}
+
     for {
-        game.DrawGrid(grid, j, party)
+        game.DrawGrid(grid, j, party, eventLog)
         cm.MoveAll(grid, party)
         messages := cm.CheckAdjacency(party)
         for _, msg := range messages {
-            fmt.Println(msg)
+            eventLog = append(eventLog, msg)
+            if len(eventLog) > 5 {
+                eventLog = eventLog[len(eventLog)-5:]
+            }
         }
         
         cx, cy := party.Center()
@@ -41,6 +46,24 @@ func main() {
                 c.Tired = false
                 c.Spooked = false
                 c.MoveCount = 0
+            }
+        }
+        
+        if j.Phases[j.Phase] == "🌅 Morning" && j.CurrentTick == 0 {
+            if game.DiceRoll(7) == 7 {
+                cx, cy := party.Center()
+                sprite := game.NewSootSprite()
+                // find an empty tile near the center
+                for _, offset := range [][2]int{{0,1},{0,-1},{1,0},{-1,0}} {
+                    nx, ny := cx+offset[0], cy+offset[1]
+                    if grid[ny][nx].Walkable && grid[ny][nx].Entity == nil {
+                        sprite.X = nx
+                        sprite.Y = ny
+                        grid[ny][nx].Entity = sprite
+                        cm.Critters = append(cm.Critters, sprite)
+                        break
+                    }
+                }
             }
         }
 

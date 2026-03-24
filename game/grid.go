@@ -26,46 +26,43 @@ const clearLine = "\033[2K\r"
 // visWidth returns the real terminal display width of a string,
 // accounting for double-wide emoji characters
 func visWidth(s string) int {
-    width := 0
-    for _, r := range s {
-        if r >= 0x2300 {
-            width += 2 // covers ✅ and all emoji
-        } else {
-            width++
-        }
-    }
-    return width
+	width := 0
+	for _, r := range s {
+		if r >= 0x2300 {
+			width += 2 // covers ✅ and all emoji
+		} else {
+			width++
+		}
+	}
+	return width
+}
+
+// padTo pads a string to exactly targetWidth visible columns
+func padTo(s string, targetWidth int) string {
+	vis := visWidth(s)
+	if vis >= targetWidth {
+		return s
+	}
+	return s + strings.Repeat(" ", targetWidth-vis)
 }
 
 // buildPanel builds the status panel lines including the box frame
 func buildPanel(p *Party, panelWidth int) []string {
-	inner := panelWidth - 2 // subtract left and right border chars
-
-	// pad a string to inner width using visible terminal width
-	pad := func(s string) string {
-		vis := visWidth(s)
-		if vis >= inner {
-			return s
-		}
-		return s + strings.Repeat(" ", inner-vis)
-	}
+	inner := panelWidth - 2
 
 	lines := []string{}
 	lines = append(lines, "┌"+strings.Repeat("─", inner)+"┐")
 
 	for i, c := range p.Members {
-		// Name line
 		nameStr := fmt.Sprintf("%c  %s the %s", c.GetSymbol(), c.Name, c.Class)
-		lines = append(lines, "│"+pad(" "+nameStr)+"│")
+		lines = append(lines, "│"+padTo(" "+nameStr, inner)+"│")
 
-		// Status line
 		status := ""
 		if c.Tired   { status += "😴 Tired  " }
 		if c.Spooked { status += "😨 Spooked" }
 		if status == "" { status = "✅ OK" }
-		lines = append(lines, "│"+pad("  "+status)+"│")
+		lines = append(lines, "│"+padTo("  "+status, inner)+"│")
 
-		// Divider between members, not after last
 		if i < len(p.Members)-1 {
 			lines = append(lines, "│"+strings.Repeat(" ", inner)+"│")
 		}
@@ -75,8 +72,51 @@ func buildPanel(p *Party, panelWidth int) []string {
 	return lines
 }
 
+// buildEventLog builds the event log panel with tilde borders
+func buildEventLog(messages []string, logWidth int) []string {
+	inner := logWidth - 2 // space between the two ~ borders
+
+	lines := []string{}
+
+	// Header
+	lines = append(lines, strings.Repeat("~", logWidth))
+	lines = append(lines, "~"+padTo(" Event Log", inner)+"~")
+	lines = append(lines, strings.Repeat("~", logWidth))
+
+	// Pad to 5 entries so height is always consistent
+	entries := make([]string, 5)
+	copy(entries, messages)
+
+	for _, msg := range entries {
+		if msg == "" {
+			lines = append(lines, "~"+strings.Repeat(" ", inner)+"~")
+		} else {
+			// truncate to inner width respecting emoji double-width
+			display := " " + msg
+			width := 0
+			truncated := ""
+			for _, r := range display {
+				charW := 1
+				if r >= 0x2300 {
+					charW = 2
+				}
+				if width+charW > inner {
+					break
+				}
+				truncated += string(r)
+				width += charW
+			}
+			lines = append(lines, "~"+padTo(truncated, inner)+"~")
+		}
+	}
+
+	// Footer
+	lines = append(lines, strings.Repeat("~", logWidth))
+	return lines
+}
+
 // I'm gonna be honest Claude did most of this UI code
-func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
+func DrawGrid(grid [][]Tile, j *Journey, p *Party, messages []string) {
 	gridCols := len(grid[0])
 	gridRows := len(grid)
 	cellWidth := 2
@@ -90,10 +130,11 @@ func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
 	}
 
 	panelWidth := 28
+	logWidth   := 28
 	gap := 2
 
-	// Total width = grid + gap + panel
-	totalWidth := gridWidth + gap + panelWidth
+	// Total width = log + gap + grid + gap + panel
+	totalWidth := logWidth + gap + gridWidth + gap + panelWidth
 
 	// Center horizontally
 	leftPad := (termWidth - totalWidth) / 2
@@ -102,8 +143,9 @@ func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
 	}
 	padding := strings.Repeat(" ", leftPad)
 
-	// Build panel lines
-	panel := buildPanel(p, panelWidth)
+	// Build panel and log lines
+	panel    := buildPanel(p, panelWidth)
+	eventLog := buildEventLog(messages, logWidth)
 
 	// Status bar
 	phase := j.Phases[j.Phase]
@@ -141,12 +183,22 @@ func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
 	fmt.Print(clearLine)
 	fmt.Print(strings.Repeat(" ", titlePad) + title + "\n")
 
-	// Draw grid rows with panel alongside
+	// Draw grid rows with log on left and panel on right
 	gapStr := strings.Repeat(" ", gap)
 	for y := 0; y < gridRows; y++ {
 		fmt.Print(clearLine)
 		fmt.Print(padding)
 
+		// Event log column
+		if y < len(eventLog) {
+			fmt.Print(eventLog[y])
+		} else {
+			fmt.Print(strings.Repeat(" ", logWidth))
+		}
+
+		fmt.Print(gapStr)
+
+		// Grid
 		for x := 0; x < gridCols; x++ {
 			if grid[y][x].Entity != nil {
 				fmt.Printf("%c ", grid[y][x].Entity.GetSymbol())
@@ -155,6 +207,7 @@ func DrawGrid(grid [][]Tile, j *Journey, p *Party) {
 			}
 		}
 
+		// Status panel
 		fmt.Print(gapStr)
 		if y < len(panel) {
 			fmt.Print(panel[y])

@@ -169,7 +169,7 @@ func (cm *CritterManager) MoveAll(grid [][]Tile, party *Party) {
             grid[crit.Y][crit.X].Entity = crit
         }
     }
-    }  // ← for loop closes here
+    }
 }
 
 
@@ -185,9 +185,10 @@ func (cm *CritterManager) CheckAdjacency(party *Party) []string {
 
             if adjacent {
             if crit.Hostile {
-                messages = append(messages, fmt.Sprintf("⚔️ %s attacks %s!", crit.Name, member.Name))
+                member.Spooked = true
+                messages = append(messages, fmt.Sprintf("%s attacks %s!", crit.Name, member.Name))
             } else {
-                messages = append(messages, fmt.Sprintf("✨ %s encounters %s!", member.Name, crit.Name))
+                messages = append(messages, fmt.Sprintf("%s encounters %s!", member.Name, crit.Name))
             }
             }
         }

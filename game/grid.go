@@ -18,6 +18,42 @@ func GenerateGrid(x int, y int) [][]Tile {
 		grid = append(grid, row)
 	}
 
+	// Pass 1 — seed randomly
+	for y := range grid {
+		for x := range grid[y] {
+			roll := DiceRoll(18)
+			if roll == 1 {
+				grid[y][x] = Tile{Symbol: '~', Walkable: false, Terrain: "water"}
+			} else if roll == 2 {
+				grid[y][x] = Tile{Symbol: '♣', Walkable: false, Terrain: "forest"}
+			}
+		}
+	}
+
+	// Pass 2 — smooth by spreading terrain to neighbors
+	for y := range grid {
+		for x := range grid[y] {
+			for dy := -1; dy <= 1; dy++ {
+				for dx := -1; dx <= 1; dx++ {
+					if dx == 0 && dy == 0 { continue }
+					if y+dy < 0 || y+dy >= len(grid) || x+dx < 0 || x+dx >= len(grid[0]) { continue } // bounds check
+					if grid[y+dy][x+dx].Terrain == "water" {
+						roll := DiceRoll(10)
+						if roll <= 2 {
+							grid[y][x] = Tile{Symbol: '~', Walkable: false, Terrain: "water"}
+						}
+					}
+					if grid[y+dy][x+dx].Terrain == "forest" {
+						roll := DiceRoll(10)
+						if roll <= 2 {
+							grid[y][x] = Tile{Symbol: '♣', Walkable: false, Terrain: "forest"}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return grid
 }
 

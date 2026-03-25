@@ -37,6 +37,7 @@ func GenerateGrid(x int, y int) [][]Tile {
 				for dx := -1; dx <= 1; dx++ {
 					if dx == 0 && dy == 0 { continue }
 					if y+dy < 0 || y+dy >= len(grid) || x+dx < 0 || x+dx >= len(grid[0]) { continue } // bounds check
+					if grid[y][x].Terrain != "plains" { continue }
 					if grid[y+dy][x+dx].Terrain == "water" {
 						roll := DiceRoll(10)
 						if roll <= 2 {
